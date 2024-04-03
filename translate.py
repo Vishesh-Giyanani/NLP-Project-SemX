@@ -1,8 +1,9 @@
 import numpy as np 
 import pandas as pd 
 import requests
-from tenerflow import query
 
+import pickle
+import tenerflow as TF
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, LSTM, Embedding, Dense
@@ -22,7 +23,45 @@ import matplotlib.pyplot as plt
 import os
 
 
+def decode_sequence(input_seq):
+    encoder_model,decoder_model = TF.load_model()
+    num_decoder_tokens = 90
+    max_decoder_seq_length = 1145
+    target_token_index = pickle.load(open('assets/target_token.pkl', 'rb'))
+    reverse_target_char_index = pickle.load(open('assets/reverse_target.pkl', 'rb'))
+    states_value = encoder_model.predict(input_seq)
+    target_seq = np.zeros((1, 1, num_decoder_tokens))
+    target_seq[0, 0, target_token_index['%']] = 1.
+    stop_condition = False
+    decoded_sentence = ''
+    
+    while not stop_condition:
+        output_tokens, h, c = decoder_model.predict(
+            [target_seq] + states_value)
+        
+        sampled_token_index = np.argmax(output_tokens[0, -1, :])
+        sampled_char = reverse_target_char_index[sampled_token_index]
+        
+        decoded_sentence += sampled_char
+
+        # Exit condition: either hit max length
+        if (sampled_char == '$' or
+           len(decoded_sentence) > max_decoder_seq_length):
+            stop_condition = True
+
+        target_seq = np.zeros((1, 1, num_decoder_tokens))
+        target_seq[0, 0, sampled_token_index] = 1.
+
+        states_value = [h, c]
+
+    return decoded_sentence
+
 def translated_english_to_hindi(input_sentence):
+    exclude = set(string.punctuation) # Set of all special characters
+    remove_digits = str.maketrans('', '', digits)
+    max_encoder_seq_length = 1309
+    num_encoder_tokens=27
+    input_token_index = pickle.load(open('assets/input_token.pkl', 'rb'))
     input_sentence = input_sentence.lower()
     input_sentence = re.sub("'", '', input_sentence)
     input_sentence = ''.join(ch for ch in input_sentence if ch not in exclude)
@@ -36,9 +75,10 @@ def translated_english_to_hindi(input_sentence):
             encoder_input_data[0, t, input_token_index[char]] = 1
     encoder_input_data[0, t+1:, input_token_index[' ']] = 1
 
-    decoded_sentence = decode_sequence(encoder_input_data)
+    try:
+        decoded_sentence = decode_sequence(encoder_input_data)
+    except:
+        decoded_sentence = TF.load(input_sentence)
     return decoded_sentence
-
-
 if __name__=='__main__':
     translated_english_to_hindi('Hi, how are you?')

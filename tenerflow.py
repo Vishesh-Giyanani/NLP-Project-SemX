@@ -7,7 +7,15 @@ def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
-def translation(input_text):
+def load(input_text):
     payload = {"inputs": input_text}
     response = query(payload)
-    return response['generated_text']
+    print(response)
+    try:
+        return response[0]['generated_text']
+    except KeyError:
+        return "Translation failed"
+    
+def load_model():
+    return
+    

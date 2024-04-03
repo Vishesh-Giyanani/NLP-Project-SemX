@@ -1,11 +1,10 @@
 import streamlit as st
-from cleaning import translation
-
+from translate import translated_english_to_hindi
 def translate_text(input_text):
     # Add your translation logic here
     # translated_text = input_text.upper()  # Example translation: convert input to uppercase
-    translated_text = translation(input_text)
-    return translated_text
+    result = translated_english_to_hindi(input_text)
+    return result
 
 def main():
     st.title("English to hindi project")
