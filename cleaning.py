@@ -10,4 +10,8 @@ def query(payload):
 def translation(input_text):
     payload = {"inputs": input_text}
     response = query(payload)
-    return response['generated_text']
+    print(response)
+    try:
+        return response[0]['generated_text']
+    except KeyError:
+        return "Translation failed"
